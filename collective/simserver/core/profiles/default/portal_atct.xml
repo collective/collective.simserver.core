@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<atcttool>
+ <topic_indexes>
+  <index
+    name="Language"
+    description="Language"
+    enabled="True"
+    friendlyName="Language">
+   <criteria>ATSelectionCriterion</criteria>
+   <criteria>ATListCriterion</criteria>
+   <criteria>ATSimpleStringCriterion</criteria>
+  </index>
+ </topic_indexes>
+ <topic_metadata>
+  <metadata
+    name="Language"
+        description="Language"
+        enabled="True"
+        friendlyName="Language"/>
+ </topic_metadata>
+</atcttool>

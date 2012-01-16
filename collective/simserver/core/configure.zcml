@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:five="http://namespaces.zope.org/five"
+    xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
+    xmlns:i18n="http://namespaces.zope.org/i18n"
+    xmlns:cmf="http://namespaces.zope.org/cmf"
+    i18n_domain="collective.simserver.core">
+
+  <five:registerPackage package="." initialize=".initialize" />
+
+  <!-- Include the sub-packages that use their own configure.zcml files. -->
+  <include package=".browser" />
+
+ <utility
+    component=".vocabulary.topic_vocab_factory"
+    name="simserver.core.topics"
+    provides="zope.schema.interfaces.IVocabularyFactory"
+    />
+
+
+  <!-- Register the installation GenericSetup extension profile -->
+  <genericsetup:registerProfile
+      name="default"
+      title="Collective Simserver Core"
+      directory="profiles/default"
+      description="simserver for plone"
+      provides="Products.GenericSetup.interfaces.EXTENSION"
+      />
+
+
+  <!-- Register the import step -->
+  <genericsetup:importStep
+      name="collective.simserver.core"
+      title="collective.simserver.core special import handlers"
+      description=""
+      handler="collective.simserver.core.setuphandlers.setupVarious" />
+
+</configure>

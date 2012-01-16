@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    i18n_domain="collective.simserver.core">
+
+    <include package="plone.app.contentmenu" />
+    <include package="Products.CMFCore" file="permissions.zcml" />
+    <include package="plone.app.registry" />
+
+    <browser:page
+        for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+        name="simserversettings"
+        class=".settings.SimserverSettingsControlPanel"
+        permission="cmf.ManagePortal" />
+
+    <browser:page
+      name="export_corpus.html"
+      for="Products.ATContentTypes.interfaces.topic.IATTopic"
+      class=".forms.ExportCorpus"
+      permission = "cmf.ManagePortal" />
+
+</configure>
