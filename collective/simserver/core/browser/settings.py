@@ -6,7 +6,7 @@ from collective.simserver.core.interfaces import ISimserverSettingsSchema
 from zope.app.component.hooks import getSite
 from zope.component import getUtility
 from plone.registry.interfaces import IRegistry
-
+from Products.statusmessages.interfaces import IStatusMessage
 
 class SimserverSettings(controlpanel.RegistryEditForm):
     #form_fields = form.FormFields(ITagHelperSettingsSchema)

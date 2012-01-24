@@ -25,7 +25,6 @@ setup(name='collective.simserver.core',
       install_requires=[
           'setuptools',
           # -*- Extra requirements: -*-
-          'Pyro4',
           'plone.app.registry',
       ],
       entry_points="""
