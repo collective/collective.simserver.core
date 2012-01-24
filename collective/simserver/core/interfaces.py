@@ -25,43 +25,43 @@ class ISimserverSettingsSchema(interface.Interface):
     corpus_collection = schema.Choice(
         title=_(u"Corpus collection"),
         description=_(u"Find the collection which provides the items to be exported as the corpus"),
-        required=False,
+        required=True,
         vocabulary ='simserver.core.topics',
         )
 
     simserver_name = schema.TextLine(
         title=_(u'Simserver Name'),
         description=_(u'Name of the simserver to connect to'),
-        required=True,
+        required=False,
         readonly=False,
         default=u'collective.simserver',
         )
 
-    pyro_ns_socket = schema.TextLine(
-        title=_(u'Pyro4 Nameserver socket'),
-        description=_(u'''Unix domain socket the Pyro Nameserver runs on (e.g. ./u:/tmp/pyrons.pid).
-                    You have either to provide the socket or host and port.
-                    If socket and host and port are given we will first try to connect
-                    via the socket and if that fails connect to the host:port'''),
-        required=False,
+
+    restsims_url = schema.TextLine(
+        title=_(u'Restful Simserver URL'),
+        description=_(u'''URL of the server (e.g. http://localhost:6543/)'''),
+        required=True,
         readonly=False,
-        default=u'./u:/tmp/pyrons.pid',
+        default=u'http://localhost:6543',
         )
 
-    pyro_ns_host = schema.TextLine(
-        title=_(u'Pyro4 Nameserver host'),
-        description=_(u'''Host the Pyro Nameserver runs on (e.g. localhost)
-                    You have either to provide the socket or host and port.'''),
-        required=False,
-        readonly=False,
-        default=u'localhost',
+    min_score = schema.Float(
+        title = _("Min score"),
+        description = _("Minimal score"),
+        required = True,
+        readonly = False,
+        default = 0.4,
+        min = 0.0,
+        max = 1.0,
         )
 
-    pyro_ns_port = schema.Int(
-        title=_(u'Pyro4 Nameserver port'),
-        description=_(u'''Port the Pyro Nameserver runs on (e.g. 9900)
-                    You have either to provide the socket or host and port.'''),
-        required=False,
-        readonly=False,
-        default=9090,
+    max_results = schema.Int(
+        title= _(u'Max Results'),
+        description = _(u'Maximum number of results returned'),
+        required = True,
+        readonly = False,
+        default = 100,
+        min = 1,
+        max = 200,
         )

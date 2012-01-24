@@ -15,7 +15,7 @@
         permission="cmf.ManagePortal" />
 
     <browser:page
-      name="export_corpus.html"
+      name="simserver-corpus.html"
       for="Products.ATContentTypes.interfaces.topic.IATTopic"
       class=".forms.ExportCorpus"
       permission = "cmf.ManagePortal" />

@@ -1,66 +1,83 @@
 # -*- coding: utf-8 -*-
-import re
-import Pyro4
+import urllib, urllib2
+try:
+    import simplejson as json
+except ImportError:
+    import json
+
 from zope.component import getUtility
 
 from plone.registry.interfaces import IRegistry
 
 from collective.simserver.core.interfaces import ISimserverSettingsSchema
-PAT_ALPHABETIC = re.compile('(((?![\d])\w)+)', re.UNICODE)
-
-def get_session_server():
-    registry = getUtility(IRegistry)
-    settings = registry.forInterface(ISimserverSettingsSchema)
-    name = settings.simserver_name
-    sock = settings.pyro_ns_socket
-    host = settings.pyro_ns_host
-    port = settings.pyro_ns_port
-    if sock:
-        try:
-            service = Pyro4.Proxy(Pyro4.locateNS(sock).lookup(name))
-            return service
-        except:
-            pass
-    if host:
-        try:
-            service = Pyro4.Proxy(Pyro4.locateNS(host, port).lookup(name))
-            return service
-        except:
-            pass
-    service = Pyro4.Proxy(Pyro4.locateNS().lookup(name))
-    return service
 
 
-def tokenize(text, lowercase=False, deacc=False, errors="strict", to_lower=False, lower=False):
-    """
-    Iteratively yield tokens as unicode strings, optionally also lowercasing them
-    and removing accent marks.
+class SimService(object):
 
-    Input text may be either unicode or utf8-encoded byte string.
 
-    The tokens on output are maximal contiguous sequences of alphabetic
-    characters (no digits!).
+    def __init__(self):
+        registry = getUtility(IRegistry)
+        settings = registry.forInterface(ISimserverSettingsSchema)
+        self.url = settings.restsims_url
+        self.min_score = settings.min_score
+        self.max_results = settings.max_results
 
-    >>> list(tokenize('Nic nemůže letět rychlostí vyšší, než 300 tisíc kilometrů za sekundu!', deacc = True))
-    [u'Nic', u'nemuze', u'letet', u'rychlosti', u'vyssi', u'nez', u'tisic', u'kilometru', u'za', u'sekundu']
-    """
-    lowercase = lowercase or to_lower or lower
-    if not isinstance(text, unicode):
-        text = unicode(text, encoding='utf8', errors=errors)
-    if lowercase:
-        text = text.lower()
-    if deacc:
-        text = deaccent(text)
-    for match in PAT_ALPHABETIC.finditer(text):
-        yield match.group()
+    def rest_post(self, content):
+        content['format'] = 'json'
+        content['submit'] = 'submit'
+        params = urllib.urlencode(content)
+        response = urllib2.urlopen(self.url, data=params)
+        data = response.read()
+        return json.loads(data)
 
-def simple_preprocess(doc):
-    """
-    Convert a document into a list of tokens.
+    def status(self):
+        content = {'action':'status',
+                    'format': 'json',}
+        return self.rest_post(content)[0]
 
-    This lowercases, tokenizes, stems, normalizes etc. -- the output are final,
-    utf8 encoded strings that won't be processed any further.
-    """
-    tokens = [token.encode('utf8') for token in tokenize(doc, lower=True, errors='ignore')
-            if 2 <= len(token) <= 15 and not token.startswith('_')]
-    return tokens
+    def train(self, corpus):
+        """ Corpus is a list of dictionaries. Each dictionary must be
+            either: {'id': UID, 'text': Text}
+            or: {'id': UID, 'tokens': ['List', 'of', 'tokens']} """
+        content = {'action': 'train',
+                    'text': json.dumps(corpus)}
+
+    def index(self, corpus):
+        """ Corpus is a list of dictionaries. Each dictionary must be
+            either: {'id': UID, 'text': Text}
+            or: {'id': UID, 'tokens': ['List', 'of', 'tokens']} """
+        content = {'action': 'index',
+                    'text': json.dumps(corpus)}
+
+    def delete(self, documents):
+        """ documents is a list of UIDs to be deleted """
+        content = {'action':' delete',
+                    'text': json.dumps(documents)}
+        return self.rest_post(content)
+
+    def optimize(self):
+        content = {'action':' optimize'}
+        return self.rest_post(content)
+
+    def query(self, documents=None, text=None, min_score=None, max_results=None):
+        """ either query for a list of documents [UID,]
+        or a plain text that will be compared to the indexed documents
+        @returns either a list of documents if text
+                or a dictionary {UID : [similar] """
+        content = {'action':'query'}
+        if min_score:
+            content['min_score'] = min_score
+        else:
+            content['min_score'] = self.min_score
+        if max_results:
+            content['max_results'] = max_results
+        else:
+            content['max_results'] = self.max_results
+
+        if documents:
+            content['text'] = json.dumps(documents)
+        elif text:
+            content['text'] = text
+        else:
+            return 'Either text or documents must be specified'
+        return self.rest_post(content)
