@@ -41,6 +41,7 @@ class SimService(object):
             or: {'id': UID, 'tokens': ['List', 'of', 'tokens']} """
         content = {'action': 'train',
                     'text': json.dumps(corpus)}
+        return self.rest_post(content)
 
     def index(self, corpus):
         """ Corpus is a list of dictionaries. Each dictionary must be
@@ -48,15 +49,16 @@ class SimService(object):
             or: {'id': UID, 'tokens': ['List', 'of', 'tokens']} """
         content = {'action': 'index',
                     'text': json.dumps(corpus)}
+        return self.rest_post(content)
 
     def delete(self, documents):
         """ documents is a list of UIDs to be deleted """
-        content = {'action':' delete',
+        content = {'action': 'delete',
                     'text': json.dumps(documents)}
         return self.rest_post(content)
 
     def optimize(self):
-        content = {'action':' optimize'}
+        content = {'action': 'optimize'}
         return self.rest_post(content)
 
     def query(self, documents=None, text=None, min_score=None, max_results=None):

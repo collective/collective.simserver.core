@@ -85,6 +85,7 @@ class ExportCorpus(formbase.PageForm):
             else:
                 if online:
                     self.buffer.append({'id': uid, 'text': text})
+                    logger.info('bufferd %s' % uid)
                 if offline:
                     fname = path + uid
                     f = open(fname, 'w')
@@ -110,18 +111,23 @@ class ExportCorpus(formbase.PageForm):
         if contextuid != self.settinguid:
             topic = site.reference_catalog.lookupObject(self.settinguid)
             next_url = topic.absolute_url() + '/@@' + self.__name__
+            status = _(u"""you can only train documents on the topic
+                            you specified in the controlpanel""")
+            IStatusMessage(self.request).addStatusMessage(status, type='error')
+            status = _('you have been redirected to this topic')
+            IStatusMessage(self.request).addStatusMessage(status, type='info')
             self.request.response.redirect(next_url)
         else:
             try:
                 i = self.buffer_documents(self.context.queryCatalog(), path, online, offline)
                 if online:
-                    logger.info('exported %i documents. Start training' % i)
+                    logger.info('exported %i documents. Start training' % i[0])
                     i = self.service.train(self.buffer)
                     logger.info('training complete')
                     status = 'changes commited, index trained'
                     IStatusMessage(self.request).addStatusMessage(_(status), type='info')
                 else:
-                    logger.info('exported %i documents.' % i)
+                    logger.info('exported %i documents.' % i[0])
                     status = 'export successfull'
                     IStatusMessage(self.request).addStatusMessage(_(status), type='info')
                 self.request.response.redirect(self.next_url)
@@ -137,21 +143,22 @@ class ExportCorpus(formbase.PageForm):
         contextuid = self.context.UID()
         online = data['process_directly']
         offline = data['export_to_fs']
-        try:
-            i = self.buffer_documents(self.context.queryCatalog(), path, online, offline, 300)
-            if online:
-                i = self.service.index(self.buffer)
-                logger.info('indexing complete , indexed %i documents' % i)
-                status = 'documents indexed'
-                IStatusMessage(self.request).addStatusMessage(_(status), type='info')
-            else:
-                status = 'documents exported'
-                IStatusMessage(self.request).addStatusMessage(_(status), type='info')
-                logger.info('exported %i documents' % i)
-        except:
-            status = 'error indexing documents, index unchanged'
-            logger.warn(status)
-            IStatusMessage(self.request).addStatusMessage(_(status), type='error')
+        #try:
+        i = self.buffer_documents(self.context.queryCatalog(), path, online, offline, 300)
+        if online:
+            import ipdb; ipdb.set_trace()
+            i = self.service.index(self.buffer)
+            logger.info('indexing complete, indexed %i documents' % i[0])
+            status = 'documents indexed'
+            IStatusMessage(self.request).addStatusMessage(_(status), type='info')
+        else:
+            status = 'documents exported'
+            IStatusMessage(self.request).addStatusMessage(_(status), type='info')
+            logger.info('exported %i documents' % i[0])
+        #except:
+        #    status = 'error indexing documents, index unchanged'
+        #    logger.warn(status)
+        #    IStatusMessage(self.request).addStatusMessage(_(status), type='error')
         self.request.response.redirect(self.next_url)
 
 
