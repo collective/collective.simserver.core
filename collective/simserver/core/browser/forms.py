@@ -41,6 +41,20 @@ class IExportForm(interface.Interface):
         default=False,
         )
 
+
+    upload_chunked = schema.Int(
+        title = _(u'Chunksize'),
+        description = _(u"""send n documents at a time (saves RAM but slower)
+                    only applicable for online indexing """),
+        required = False,
+        readonly = False,
+        default = 200,
+        min = 0,
+        max = 5000,
+        )
+
+
+
     @interface.invariant
     def neither_export_nor_direct(export):
         if not export.export_to_fs and not export.process_directly:
@@ -64,9 +78,12 @@ class ExportCorpus(formbase.PageForm):
             self.path = self.settings.export_path + '/'
         super( ExportCorpus, self).__init__( context, request )
         #self.results = self.context.queryCatalog()
-        self.service = utils.SimService()
-        IStatusMessage(self.request).addStatusMessage(self.service.status())
-
+        try:
+            self.service = utils.SimService()
+            IStatusMessage(self.request).addStatusMessage(self.service.status())
+        except:
+            status = _(u'Error connecting to simserver')
+            IStatusMessage(self.request).addStatusMessage(status, type='error')
 
 
     def buffer_documents(self, brains, path, online=False,
@@ -78,7 +95,7 @@ class ExportCorpus(formbase.PageForm):
             text = ob.SearchableText()
             text = text.strip()
             text = text.lstrip(id).lstrip()
-            text.decode('utf-8', 'ignore')
+            text = text.decode('utf-8', 'ignore')
             uid = ob.UID()
             if len(text) < min_chars:
                 continue
@@ -143,10 +160,24 @@ class ExportCorpus(formbase.PageForm):
         contextuid = self.context.UID()
         online = data['process_directly']
         offline = data['export_to_fs']
-        #try:
-        i = self.buffer_documents(self.context.queryCatalog(), path, online, offline, 300)
-        if online:
-            import ipdb; ipdb.set_trace()
+        chunksize = data['upload_chunked']
+        if chunksize and online:
+            j = 0
+            k = 0
+            qresults = self.context.queryCatalog()
+            while j*chunksize < len(qresults):
+                i = self.buffer_documents(qresults[j*chunksize:(j+1)*chunksize],
+                                path, online, offline)
+                j += 1
+                i = self.service.index(self.buffer)
+                logger.info('indexed %i documents' % i[0])
+                k += i[0]
+                self.buffer =[]
+            logger.info('indexing complete, indexed %i documents' % k)
+            status = 'changes commited, index trained'
+            IStatusMessage(self.request).addStatusMessage(_(status), type='info')
+            i = self.buffer_documents(self.context.queryCatalog(), path, online, offline, 300)
+        elif online:
             i = self.service.index(self.buffer)
             logger.info('indexing complete, indexed %i documents' % i[0])
             status = 'documents indexed'
