@@ -2,8 +2,10 @@
 import urllib, urllib2
 try:
     import simplejson as json
+    from simplejson.decoder import JSONDecodeError
 except ImportError:
     import json
+    JSONDecodeError = ValueError
 
 from zope.component import getUtility
 
@@ -28,7 +30,10 @@ class SimService(object):
         params = urllib.urlencode(content)
         response = urllib2.urlopen(self.url, data=params)
         data = response.read()
-        return json.loads(data)
+        try:
+            return json.loads(data)
+        except (JSONDecodeError, ValueError):
+            return {'status': 'UNKNOWN', 'response': 'JSONDecodeError'}
 
     def status(self):
         content = {'action':'status',
@@ -81,5 +86,6 @@ class SimService(object):
         elif text:
             content['text'] = text
         else:
-            return 'Either text or documents must be specified'
+            return {'status': 'NODATA', 'response':
+                'Either text or documents must be specified'}
         return self.rest_post(content)
