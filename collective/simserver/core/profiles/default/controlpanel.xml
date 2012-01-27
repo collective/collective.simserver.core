@@ -11,7 +11,7 @@
         appId="collective.simserver.core"
         category="Products"
         condition_expr=""
-        url_expr="string:${portal_url}/@@simserversettings"
+        url_expr="string:${portal_url}/@@simserversettings.html"
         visible="True"
         i18n:attributes="title">
             <permission>Manage portal</permission>

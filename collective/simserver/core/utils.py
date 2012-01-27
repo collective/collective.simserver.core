@@ -38,7 +38,7 @@ class SimService(object):
     def status(self):
         content = {'action':'status',
                     'format': 'json',}
-        return self.rest_post(content)[0]
+        return self.rest_post(content)
 
     def train(self, corpus):
         """ Corpus is a list of dictionaries. Each dictionary must be

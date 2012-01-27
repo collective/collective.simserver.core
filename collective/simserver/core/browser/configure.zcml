@@ -10,7 +10,7 @@
 
     <browser:page
         for="Products.CMFPlone.interfaces.IPloneSiteRoot"
-        name="simserversettings"
+        name="simserversettings.html"
         class=".settings.SimserverSettingsControlPanel"
         permission="cmf.ManagePortal" />
 
