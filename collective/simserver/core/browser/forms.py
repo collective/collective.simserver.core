@@ -17,6 +17,10 @@ from collective.simserver.core.interfaces import ISimserverSettingsSchema
 from collective.simserver.core import utils
 
 
+try:
+    import simplejson as json
+except ImportError:
+    import json
 
 logger = logging.getLogger('collective.simserver.core')
 
@@ -80,7 +84,6 @@ class ExportCorpus(formbase.PageForm):
         else:
             self.path = self.settings.export_path + '/'
         super( ExportCorpus, self).__init__( context, request )
-        #self.results = self.context.queryCatalog()
         try:
             self.service = utils.SimService()
             response = self.service.status()
@@ -110,8 +113,15 @@ class ExportCorpus(formbase.PageForm):
                 continue
             else:
                 if online:
-                    self.buffer.append({'id': uid, 'text': text})
-                    logger.info('bufferd %s' % uid)
+                    tmp = ''
+                    try:
+                        # try to convert it to json and only buffer it
+                        # when it could be successfully dummed
+                        tmp = json.dumps({'id': uid, 'text': text})
+                        self.buffer.append({'id': uid, 'text': text})
+                        logger.info('bufferd %s' % uid)
+                    except:
+                        logger.error('cannot dump %s as json' % uid)
                 if offline:
                     fname = path + uid
                     f = open(fname, 'w')
@@ -222,4 +232,6 @@ class ExportCorpus(formbase.PageForm):
 
     @form.action('Cancel')
     def actionCancel(self, action, data):
+        status = _(u'canceled')
+        IStatusMessage(self.request).addStatusMessage(status, type='info')
         self.request.response.redirect(self.next_url)
