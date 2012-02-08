@@ -108,6 +108,7 @@ class ExportCorpus(formbase.PageForm):
             text = text.strip()
             text = text.lstrip(id).lstrip()
             text = text.decode('utf-8', 'ignore')
+            text = text.encode('utf-8')
             uid = ob.UID()
             if len(text) < min_chars:
                 continue
@@ -116,7 +117,7 @@ class ExportCorpus(formbase.PageForm):
                     tmp = ''
                     try:
                         # try to convert it to json and only buffer it
-                        # when it could be successfully dummed
+                        # when it could be successfully dumped
                         tmp = json.dumps({'id': uid, 'text': text})
                         self.buffer.append({'id': uid, 'text': text})
                         logger.info('bufferd %s' % uid)
@@ -196,7 +197,7 @@ class ExportCorpus(formbase.PageForm):
             qresults = self.context.queryCatalog()
             while j*chunksize < len(qresults):
                 i = self.buffer_documents(qresults[j*chunksize:(j+1)*chunksize],
-                                path, online, offline)
+                                path, online, offline, 300)
                 j += 1
                 response = self.service.index(self.buffer)
                 if response['status'] == 'OK':
@@ -223,6 +224,8 @@ class ExportCorpus(formbase.PageForm):
                 IStatusMessage(self.request).addStatusMessage(
                                     response['response'], type='error')
         else:
+            i = self.buffer_documents(self.context.queryCatalog(), path,
+                            False, True, 300)
             status = _('documents exported')
             IStatusMessage(self.request).addStatusMessage(status,
                                                 type='info')
