@@ -12,10 +12,17 @@
   <!-- Include the sub-packages that use their own configure.zcml files. -->
   <include package=".browser" />
 
- <utility
+  <utility
     component=".vocabulary.topic_vocab_factory"
     name="simserver.core.topics"
     provides="zope.schema.interfaces.IVocabularyFactory"
+    />
+
+
+  <subscriber
+    for="Products.ATContentTypes.interfaces.interfaces.IATContentType
+        Products.Archetypes.interfaces.IObjectInitializedEvent"
+    handler=".utils.index_and_relate"
     />
 
 

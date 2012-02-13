@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import urllib, urllib2
+import logging
 try:
     import simplejson as json
     from simplejson.decoder import JSONDecodeError
@@ -11,8 +12,11 @@ from zope.component import getUtility
 
 from plone.registry.interfaces import IRegistry
 
+from Products.CMFCore.utils import getToolByName
+
 from collective.simserver.core.interfaces import ISimserverSettingsSchema
 
+logger = logging.getLogger('collective.simserver.core')
 
 class SimService(object):
 
@@ -89,3 +93,45 @@ class SimService(object):
             return {'status': 'NODATA', 'response':
                 'Either text or documents must be specified'}
         return self.rest_post(content)
+
+
+def index_and_relate(context, event):
+    if hasattr(context, 'SearchableText'):
+        registry = getUtility(IRegistry)
+        settings = registry.forInterface(ISimserverSettingsSchema)
+        if settings.index_created:
+            if context.portal_type in settings.content_types:
+                id = context.getId()
+                text = context.SearchableText()
+                text = text.strip()
+                text = text.lstrip(id).lstrip()
+                text = text.decode('utf-8', 'ignore')
+                text = text.encode('utf-8')
+                uid = context.UID()
+                service = SimService()
+                response = service.index([{'id': uid, 'text': text}])
+                if response['status'] == 'OK':
+                    logger.info('indexed %i documents' % response['response'])
+                else:
+                    return
+            else:
+                return
+        else:
+            return
+        if settings.relate_similar:
+            response = service.query([uid],
+                max_results = settings.relate_similar +1)
+            if response['status'] == 'OK':
+                simserveritems = response['response']
+                if uid in simserveritems:
+                    suids =[s[0] for s in simserveritems[uid]
+                                if uid != s[0]]
+                else:
+                    return
+                portal_catalog = getToolByName(context, 'portal_catalog')
+                brains = portal_catalog(UID = suids)
+                uids_in_cat = [brain.UID for brain in brains]
+                uids = [uid for uid in suids if uid in uids_in_cat]
+                context.setRelatedItems(uids)
+                logger.info('related %i documents' % len(uids))
+

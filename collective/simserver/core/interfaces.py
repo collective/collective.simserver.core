@@ -24,7 +24,8 @@ class ISimserverSettingsSchema(interface.Interface):
 
     corpus_collection = schema.Choice(
         title=_(u"Corpus collection"),
-        description=_(u"Find the collection which provides the items to be exported as the corpus"),
+        description=_(u"""Find the collection which provides the items
+                            to be exported as the corpus"""),
         required=True,
         vocabulary ='simserver.core.topics',
         )
@@ -64,4 +65,36 @@ class ISimserverSettingsSchema(interface.Interface):
         default = 100,
         min = 1,
         max = 200,
+        )
+
+    index_created = schema.Bool(
+        title=_(u'Index automatically'),
+        description=_(u"""Index content upon creation
+                        (only below contentypes)."""),
+        required=False,
+        readonly=False,
+        default=True,
+        )
+
+
+    content_types = schema.List(
+        title = _(u'Content types'),
+        description = _(u"""Content types to be indexed upon creation
+                        (only applicable if
+                        'Index automatically' is enabled)"""),
+        required = False,
+        default = [u"File", u"Document", u'News Item', u'Event'],
+        value_type = schema.Choice(title=_(u"Content types"),
+                    source="plone.app.vocabularies.ReallyUserFriendlyTypes"))
+
+    relate_similar = schema.Int(
+        title=_(u'Relate to similar items'),
+        description=_(u"""Automatically assign the n most similar items as
+                        related content (0 = disable, only applicable if
+                        'Index automatically' is enabled)"""),
+        required=False,
+        readonly=False,
+        min = 0,
+        max = 20,
+        default=7,
         )
