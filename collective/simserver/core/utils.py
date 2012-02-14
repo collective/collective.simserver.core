@@ -40,8 +40,8 @@ class SimService(object):
             return {'status': 'UNKNOWN', 'response': 'JSONDecodeError'}
 
     def status(self):
-        content = {'action':'status',
-                    'format': 'json',}
+        """ Return the simserver status """
+        content = {'action':'status'}
         return self.rest_post(content)
 
     def train(self, corpus):
@@ -67,7 +67,19 @@ class SimService(object):
         return self.rest_post(content)
 
     def optimize(self):
+        """ Optimize the index """
         content = {'action': 'optimize'}
+        return self.rest_post(content)
+
+    def indexed_documents(self):
+        """ Return a list of indexed documents"""
+        content = {'action': 'indexed_documents'}
+        return self.rest_post(content)
+
+    def is_indexed(self, document):
+        """ Return if document is in index """
+        content = {'action': 'is_indexed',
+                    'text': document}
         return self.rest_post(content)
 
     def query(self, documents=None, text=None, min_score=None, max_results=None):
