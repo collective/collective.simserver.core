@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<object name="portal_actions" xmlns:i18n="http://xml.zope.org/namespaces/i18n">
+  <object name="object_buttons">
+    <object name="topic_index_simserver" meta_type="CMF Action"
+            i18n:domain="collective.simserver.core">
+      <property name="title" i18n:translate="">Index items similarity</property>
+      <property name="description" i18n:translate=""/>
+      <property name="url_expr">string:${object_url}/@@simserver-index.html</property>
+      <property name="icon_expr"/>
+      <property name="available_expr">python:object.meta_type in ('ATTopic')</property>
+      <property name="permissions">
+        <element value="Manage portal"/>
+      </property>
+      <property name="visible">True</property>
+    </object>
+  </object>
+</object>

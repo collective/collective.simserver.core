@@ -9,7 +9,6 @@ from plone.registry.interfaces import IRegistry
 from Products.statusmessages.interfaces import IStatusMessage
 
 class SimserverSettings(controlpanel.RegistryEditForm):
-    #form_fields = form.FormFields(ITagHelperSettingsSchema)
     schema = ISimserverSettingsSchema
     label = _(u'Simserver Settings')
     description = _(u'How to connect to your simserver')
@@ -20,14 +19,14 @@ class SimserverSettings(controlpanel.RegistryEditForm):
     def updateWidgets(self):
         super(SimserverSettings, self).updateWidgets()
 
-    @button.buttonAndHandler(_('Train and Index'), name='train')
+    @button.buttonAndHandler(_('Train'), name='train')
     def actionTrain(self, action):
         registry = getUtility(IRegistry)
         settings = registry.forInterface(ISimserverSettingsSchema)
         settinguid= settings.corpus_collection
         site = getSite()
         topic = site.reference_catalog.lookupObject(settinguid)
-        next_url = topic.absolute_url() + '/@@simserver-corpus.html'
+        next_url = topic.absolute_url() + '/@@simserver-train.html'
         self.request.response.redirect(next_url)
 
     @button.buttonAndHandler(_('Save'), name='save')

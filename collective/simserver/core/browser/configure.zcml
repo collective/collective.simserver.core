@@ -14,10 +14,17 @@
         class=".settings.SimserverSettingsControlPanel"
         permission="cmf.ManagePortal" />
 
+
     <browser:page
-      name="simserver-corpus.html"
+      name="simserver-index.html"
       for="Products.ATContentTypes.interfaces.topic.IATTopic"
-      class=".forms.ExportCorpus"
+      class=".forms.IndexForm"
+      permission = "cmf.ManagePortal" />
+
+    <browser:page
+      name="simserver-train.html"
+      for="Products.ATContentTypes.interfaces.topic.IATTopic"
+      class=".forms.TrainForm"
       permission = "cmf.ManagePortal" />
 
 </configure>

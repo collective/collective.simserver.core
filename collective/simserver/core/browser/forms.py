@@ -27,6 +27,11 @@ logger = logging.getLogger('collective.simserver.core')
 # Ignore articles shorter than ARTICLE_MIN_CHARS characters.
 ARTICLE_MIN_CHARS = 700
 
+class NeitherExportNorDirect(schema.ValidationError):
+     u"""Please specify if you want to
+        export and/or process directly"""
+
+
 class IExportForm(interface.Interface):
     ''' Form fields for the export form '''
     export_to_fs = schema.Bool(
@@ -47,6 +52,23 @@ class IExportForm(interface.Interface):
         )
 
 
+    @interface.invariant
+    def neither_export_nor_direct(export):
+        if not export.export_to_fs and not export.process_directly:
+            raise NeitherExportNorDirect, (_(u"""Please specify if you
+                want to export and/or process directly"""),
+                'export_to_fs', 'process_directly')
+
+
+
+
+
+
+
+
+class IIndexForm(IExportForm):
+    ''' Form fields for the index form'''
+
     upload_chunked = schema.Int(
         title = _(u'Chunksize'),
         description = _(u"""send n documents at a time (saves RAM but slower)
@@ -58,21 +80,17 @@ class IExportForm(interface.Interface):
         max = 5000,
         )
 
+    new_only = schema.Bool(
+        title=_(u'Only new documents'),
+        description=_(u"""send only documents not yet indexed to the simserver"""),
+        required=False,
+        readonly=False,
+        default=False,
+        )
 
 
-    @interface.invariant
-    def neither_export_nor_direct(export):
-        if not export.export_to_fs and not export.process_directly:
-            raise interface.Invalid(_("""Please specify if you want to
-                    export and/or process directly"""))
-
-
-class ExportCorpus(formbase.PageForm):
-
+class ExportForm(formbase.PageForm):
     form_fields = form.FormFields(IExportForm)
-    label = _(u'Create a corpus or index documents')
-    description = _(u'''You can either export the documents or send
-        them directly to the simserver''')
     buffer = []
 
     def __init__( self, context, request ):
@@ -83,7 +101,7 @@ class ExportCorpus(formbase.PageForm):
             self.path = self.settings.export_path
         else:
             self.path = self.settings.export_path + '/'
-        super( ExportCorpus, self).__init__( context, request )
+        super( ExportForm, self).__init__( context, request )
         try:
             self.service = utils.SimService()
             response = self.service.status()
@@ -138,6 +156,22 @@ class ExportCorpus(formbase.PageForm):
         url = self.context.absolute_url()
         return url
 
+    def update(self):
+        super(ExportForm, self).update()
+        for widget in self.widgets:
+            name = widget.context.getName()
+            for error in self.errors:
+                if name in error.args:
+                    widget._error = error
+
+class TrainForm(ExportForm):
+    label = _(u'Train on a corpus')
+    description = _(u'''To be able to extract information from the
+    simserver you need to build a corpus. The service indexes
+    documents in a semantic representation so we must teach the
+    service how to convert between plain text and semantics first ''')
+
+
     @form.action('train')
     def actionTrain(self, action, data):
         contextuid = self.context.UID()
@@ -183,6 +217,23 @@ class ExportCorpus(formbase.PageForm):
                 IStatusMessage(self.request).addStatusMessage(status,
                                                 type='error')
 
+    @form.action('Cancel')
+    def actionCancel(self, action, data):
+        status = _(u'canceled')
+        IStatusMessage(self.request).addStatusMessage(status, type='info')
+        self.request.response.redirect(self.next_url)
+
+
+
+class IndexForm(ExportForm):
+    form_fields = form.FormFields(IIndexForm)
+    label = _(u'Index documents')
+    description = _(u'''To be able to extract information from the
+    simserver you need to index your documents. When you pass documents
+    that have the same uid as some already indexed document, the indexed
+    document is overwritten by the new input. You don’t have to index
+    all documents first to start querying,
+    indexing can be incremental. ''')
 
     @form.action('index')
     def actionIndex(self, action, data):
@@ -191,12 +242,22 @@ class ExportCorpus(formbase.PageForm):
         online = data['process_directly']
         offline = data['export_to_fs']
         chunksize = data['upload_chunked']
+        results = self.context.queryCatalog()
+        if data['new_only']:
+            qresults = []
+            idx_response = self.service.indexed_documents()
+            if idx_response['status'] == 'OK':
+                qresults = [r for r in results
+                            if r.UID not in idx_response['response']]
+        else:
+           qresults = results
+        logger.info('start indexing, %i documents to index' % len(qresults))
         if chunksize and online:
             j = 0
             k = 0
-            qresults = self.context.queryCatalog()
             while j*chunksize < len(qresults):
-                i = self.buffer_documents(qresults[j*chunksize:(j+1)*chunksize],
+                i = self.buffer_documents(
+                                qresults[j*chunksize:(j+1)*chunksize],
                                 path, online, offline, 300)
                 j += 1
                 response = self.service.index(self.buffer)
@@ -207,31 +268,30 @@ class ExportCorpus(formbase.PageForm):
                     logger.info(response['response'])
                 self.buffer =[]
             logger.info('indexing complete, indexed %i documents' % k)
-            status = _(u'changes commited, index trained')
-            IStatusMessage(self.request).addStatusMessage(status, type='info')
+            status = _(u"Documents indexed")
+            IStatusMessage(self.request).addStatusMessage(status,
+                                                type='info')
 
         elif online:
-            i = self.buffer_documents(self.context.queryCatalog(),
-                    path, online, offline, 300)
+            i = self.buffer_documents(qresults, path, online, offline, 300)
             response = self.service.index(self.buffer)
             if response['status'] == 'OK':
                 logger.info('indexing complete, indexed %i documents' %
                                             response['response'])
-                status = _(u'documents indexed')
-                IStatusMessage(self.request).addStatusMessage(status, type='info')
+                status = _(u'Documents indexed')
+                IStatusMessage(self.request).addStatusMessage(status,
+                                                    type='info')
             else:
                 logger.info(response['response'])
                 IStatusMessage(self.request).addStatusMessage(
                                     response['response'], type='error')
         else:
-            i = self.buffer_documents(self.context.queryCatalog(), path,
-                            False, True, 300)
-            status = _('documents exported')
+            i = self.buffer_documents(qresults, path, False, True, 300)
+            status = _('Documents exported')
             IStatusMessage(self.request).addStatusMessage(status,
                                                 type='info')
             logger.info('exported %i documents' % i)
         self.request.response.redirect(self.next_url)
-
 
     @form.action('Cancel')
     def actionCancel(self, action, data):

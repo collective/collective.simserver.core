@@ -73,7 +73,7 @@ class SimService(object):
 
     def indexed_documents(self):
         """ Return a list of indexed documents"""
-        content = {'action': 'indexed_documents'}
+        content = {'action': 'documents'}
         return self.rest_post(content)
 
     def is_indexed(self, document):
