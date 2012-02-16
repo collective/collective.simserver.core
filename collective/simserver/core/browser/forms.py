@@ -293,6 +293,22 @@ class IndexForm(ExportForm):
             logger.info('exported %i documents' % i)
         self.request.response.redirect(self.next_url)
 
+
+    @form.action('Remove from index')
+    def actionDelete(self, action, data):
+        results = self.context.queryCatalog()
+        uids = [r.UID for r in results]
+        response = self.service.delete(uids)
+        if response['status'] == 'OK':
+            status = _(u'Documents removed from index')
+            IStatusMessage(self.request).addStatusMessage(status,
+                                                type='info')
+        else:
+            status = _(u'Error while removing documents from index')
+            IStatusMessage(self.request).addStatusMessage(status,
+                                                type='error')
+        self.request.response.redirect(self.next_url)
+
     @form.action('Cancel')
     def actionCancel(self, action, data):
         status = _(u'canceled')
