@@ -32,7 +32,10 @@ class SimService(object):
         content['format'] = 'json'
         content['submit'] = 'submit'
         params = urllib.urlencode(content)
-        response = urllib2.urlopen(self.url, data=params)
+        try:
+            response = urllib2.urlopen(self.url, data=params)
+        except urllib2.HTTPError, e:
+            return {'status': 'ERROR', 'response': '%i: %s' % (e.code, e.msg)}
         data = response.read()
         try:
             return json.loads(data)
@@ -140,10 +143,13 @@ def index_and_relate(context, event):
                                 if uid != s[0]]
                 else:
                     return
+                related_items = list(context.getRawRelatedItems())
                 portal_catalog = getToolByName(context, 'portal_catalog')
                 brains = portal_catalog(UID = suids)
                 uids_in_cat = [brain.UID for brain in brains]
-                uids = [uid for uid in suids if uid in uids_in_cat]
-                context.setRelatedItems(uids)
+                uids = [uid for uid in suids
+                    if (uid in uids_in_cat) and (uid not in related_items)]
+                related_items = related_items + uids
+                context.setRelatedItems(related_items[:settings.relate_similar])
                 logger.info('related %i documents' % len(uids))
 
