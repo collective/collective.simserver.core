@@ -113,7 +113,10 @@ class SimService(object):
 def index_and_relate(context, event):
     if hasattr(context, 'SearchableText'):
         registry = getUtility(IRegistry)
-        settings = registry.forInterface(ISimserverSettingsSchema)
+        try:
+            settings = registry.forInterface(ISimserverSettingsSchema)
+        except KeyError:
+            return
         if settings.index_created:
             if context.portal_type in settings.content_types:
                 id = context.getId()
