@@ -27,4 +27,11 @@
       class=".forms.TrainForm"
       permission = "cmf.ManagePortal" />
 
+    <browser:page
+      name="simserver-query.html"
+      for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+      class=".forms.QueryForm"
+      permission = "zope2.View" />
+
+
 </configure>

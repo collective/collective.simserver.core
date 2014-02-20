@@ -9,6 +9,8 @@ from five.formlib import formbase
 
 from Products.CMFCore.utils import getToolByName
 from Products.statusmessages.interfaces import IStatusMessage
+from Products.Five.browser.pagetemplatefile import ViewPageTemplateFile
+
 
 from plone.registry.interfaces import IRegistry
 
@@ -60,12 +62,6 @@ class IExportForm(interface.Interface):
                 'export_to_fs', 'process_directly')
 
 
-
-
-
-
-
-
 class IIndexForm(IExportForm):
     ''' Form fields for the index form'''
 
@@ -88,6 +84,15 @@ class IIndexForm(IExportForm):
         default=False,
         )
 
+class IQueryForm(interface.Interface):
+    '''Form fields for the query form'''
+
+    text = schema.Text(
+        title=_(u'Input text'),
+        description=_(u"""Find documents similar to this text"""),
+        required=True,
+        readonly=False,
+    )
 
 class ExportForm(formbase.PageForm):
     form_fields = form.FormFields(IExportForm)
@@ -112,6 +117,7 @@ class ExportForm(formbase.PageForm):
                 IStatusMessage(self.request).addStatusMessage(
                         response['response'], type='error')
         except:
+            self.service = None
             status = _(u'Error connecting to simserver')
             IStatusMessage(self.request).addStatusMessage(status, type='error')
 
@@ -124,7 +130,6 @@ class ExportForm(formbase.PageForm):
             id = ob.getId()
             text = ob.SearchableText()
             text = text.strip()
-            text = text.lstrip(id).lstrip()
             text = text.decode('utf-8', 'ignore')
             text = text.encode('utf-8')
             uid = ob.UID()
@@ -174,6 +179,10 @@ class TrainForm(ExportForm):
 
     @form.action('train')
     def actionTrain(self, action, data):
+        if self.service is None:
+            status = _(u'Error connecting to simserver')
+            IStatusMessage(self.request).addStatusMessage(status, type='error')
+            return
         contextuid = self.context.UID()
         path = self.path + 'corpus/'
         site = getSite()
@@ -237,6 +246,10 @@ class IndexForm(ExportForm):
 
     @form.action('index')
     def actionIndex(self, action, data):
+        if self.service is None:
+            status = _(u'Error connecting to simserver')
+            IStatusMessage(self.request).addStatusMessage(status, type='error')
+            return
         path = self.path + 'index/'
         contextuid = self.context.UID()
         online = data['process_directly']
@@ -296,6 +309,10 @@ class IndexForm(ExportForm):
 
     @form.action('Remove from index')
     def actionDelete(self, action, data):
+        if self.service is None:
+            status = _(u'Error connecting to simserver')
+            IStatusMessage(self.request).addStatusMessage(status, type='error')
+            return
         results = self.context.queryCatalog()
         uids = [r.UID for r in results]
         response = self.service.delete(uids)
@@ -314,3 +331,61 @@ class IndexForm(ExportForm):
         status = _(u'canceled')
         IStatusMessage(self.request).addStatusMessage(status, type='info')
         self.request.response.redirect(self.next_url)
+
+
+class QueryForm(formbase.PageForm):
+    ''' Display a form in which a user can input text and documents
+    similar to this text are returned'''
+    form_fields = form.FormFields(IQueryForm)
+    template = ViewPageTemplateFile('query.pt')
+
+    def __init__( self, context, request ):
+        super(QueryForm, self).__init__( context, request )
+        self.results = []
+        try:
+            self.service = utils.SimService()
+            response = self.service.status()
+            if response['status'] == 'OK':
+                IStatusMessage(self.request).addStatusMessage(
+                        response['response'], type='info')
+            else:
+                IStatusMessage(self.request).addStatusMessage(
+                        response['response'], type='error')
+        except:
+            self.service = None
+            status = _(u'Error connecting to simserver')
+            IStatusMessage(self.request).addStatusMessage(status, type='error')
+
+    @property
+    def portal_catalog(self):
+        return getToolByName(self.context, 'portal_catalog')
+
+    @form.action('Search')
+    def actionQuery(self, action, data):
+        if self.service is None:
+            status = _(u'Error connecting to simserver')
+            IStatusMessage(self.request).addStatusMessage(status, type='error')
+            return
+        response = self.service.query(text=data)
+        items = {}
+        similarities = {}
+        if response['status'] == 'OK':
+            uids = [r[0] for r in response['response']]
+            for item in response['response']:
+                similarities[item[0]] = item[1]
+            brains = self.portal_catalog(UID = similarities.keys())
+            for brain in brains:
+                similarity = similarities.get(brain.UID, 0)
+                items[brain.UID] = {'url': brain.getURL(),
+                        'uid': brain.UID,
+                        'title': brain.Title,
+                        'desc': brain.Description,
+                        'state': brain.review_state,
+                        'icon': brain.getIcon,
+                        'similarity': similarity,
+                        'tags': brain.Subject,
+                        }
+        if items:
+            for item in response['response']:
+                if item[0] in items:
+                    self.results.append(items[item[0]])

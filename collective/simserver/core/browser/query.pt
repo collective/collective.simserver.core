@@ -1,0 +1,23 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      metal:use-macro="context/main_template/macros/master">
+<body>
+  <div metal:fill-slot="main">
+    <div metal:use-macro="context/@@base-pageform.html/macros/form">
+    </div>
+    <h2>Results</h2>
+    <dl>
+      <tal:loop tal:repeat="result view/results">
+        <dt>
+          <a tal:attributes="href result/url" tal:content="result/title">
+          </a>
+          (<i tal:content="result/similarity">0.5</i>)
+        </dt>
+        <dd tal:content="result/desc"></dd>
+      </tal:loop>
+    </dl>
+  </div>
+</body>
+</html>
