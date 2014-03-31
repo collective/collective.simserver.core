@@ -12,11 +12,13 @@ class ISimserverLayer(IDefaultPloneLayer):
 
 
 class ISimserverSettingsSchema(interface.Interface):
-    """ Plone controllpanel settings for Simserver """
+    """ Plone Control Panel settings for Simserver """
 
     export_path = schema.TextLine(
         title=_(u'Corpus Export Path'),
-        description=_(u'Path to export the corpus to'),
+        description=_(u"""Path to export the corpus to 
+            (note that this should be unique per Zope instance, 
+            as the corpus is keyed on object UID)"""),
         required=False,
         readonly=False,
         default=None,
